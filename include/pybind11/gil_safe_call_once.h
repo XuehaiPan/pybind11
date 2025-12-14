@@ -92,11 +92,10 @@ public:
     }
 
     constexpr gil_safe_call_once_and_store() = default;
-    PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() {
-        if (is_initialized_ && finalize_fn_ != nullptr) {
-            finalize_fn_(*reinterpret_cast<T *>(storage_));
-        }
-    }
+    // The instance is a global static, so its destructor runs when the process
+    // is terminating. Therefore, do nothing here because the Python interpreter
+    // may have been finalized already.
+    PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() = default;
 
 private:
     // Global static storage (per process) when subinterpreter support is disabled.
@@ -166,19 +165,10 @@ public:
     }
 
     constexpr gil_safe_call_once_and_store() = default;
-    PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() {
-        if (is_initialized_by_atleast_one_interpreter_) {
-            detail::with_internals([&](detail::internals &internals) {
-                const void *key = reinterpret_cast<const void *>(this);
-                auto &storage_map = internals.call_once_storage_map;
-                auto it = storage_map.find(key);
-                if (it != storage_map.end()) {
-                    delete it->second;
-                    storage_map.erase(it);
-                }
-            });
-        }
-    }
+    // The instance is a global static, so its destructor runs when the process
+    // is terminating. Therefore, do nothing here because the Python interpreter
+    // may have been finalized already.
+    PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() = default;
 
 private:
     // No storage needed when subinterpreter support is enabled.
